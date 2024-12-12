@@ -1,0 +1,15 @@
+# COCO 2017 dataset http://cocodataset.org
+
+# download command/URL (optional)
+# download: bash ./scripts/get_coco.sh
+
+# train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
+train: D:\\vscode\Speed-Bump-Detection-and-Distance-Measurement-\yolov7\data\speedbump\datasets\\train.txt
+val: D:\\vscode\Speed-Bump-Detection-and-Distance-Measurement-\yolov7\data\speedbump\datasets\\val.txt
+test: D:\\vscode\Speed-Bump-Detection-and-Distance-Measurement-\yolov7\data\speedbump\datasets\\test.txt
+
+# number of classes
+nc: 1
+
+# class names
+names: [ 'slow' ]
