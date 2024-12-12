@@ -19,7 +19,7 @@ cap = cv2.VideoCapture(1)  # 打开USB摄像头
 fourcc = cv2.VideoWriter_fourcc(*'XVID')  # 视频编解码器
 fps = cap.get(cv2.CAP_PROP_FPS)  # 帧数
 width, height = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))  # 宽高
-out = cv2.VideoWriter('assets/datasetvideos/v8.avi', fourcc, fps, (width, height))  # 写入视频
+out = cv2.VideoWriter('assets/datasetvideos/v9.avi', fourcc, fps, (width, height))  # 写入视频
 
 while cap.isOpened():
     ret, frame = cap.read()
