@@ -9,7 +9,7 @@ val: D:\\vscode\Speed-Bump-Detection-and-Distance-Measurement-\yolov7\data\speed
 test: D:\\vscode\Speed-Bump-Detection-and-Distance-Measurement-\yolov7\data\speedbump\datasets\\test.txt
 
 # number of classes
-nc: 1
+nc: 2
 
 # class names
-names: [ 'slow' ]
+names: [ 'person','speedbump' ]
