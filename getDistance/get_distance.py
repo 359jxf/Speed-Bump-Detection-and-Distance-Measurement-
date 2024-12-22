@@ -1,12 +1,14 @@
 import cv2
 import numpy as np
 import torch
+from torchvision.ops import box_convert
 import yaml
-from ultralytics import YOLO
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'yolov7')))
+from detect import detect
 
 # 加载 YOLO 模型
-model = YOLO('yolov7/runs/detect/train8/weights/best.pt')
-model.classes = None  # 都识别
 
 # 从YAML文件加载相机参数
 def load_camera_params(yaml_path):
@@ -41,33 +43,32 @@ def get_distance(x, y):
 
 def process_frame(frame):
     # step1 图像去畸变
-    if camera_matrix is not None and distortion_coefficient is not None:
-        # 如果提供了相机矩阵和畸变系数，进行去畸变处理
-        distorted_point = np.array([[x1, y1]], dtype=np.float32).reshape(1, 1, 2)
-        distorted_point = distorted_point.reshape(1, 1, 2)
-        undistorted_point = cv2.undistortPoints(distorted_point, camera_matrix, distortion_coefficient, P=camera_matrix)
-        undistorted_point = undistorted_point.reshape(-1, 2)
-        x1, y1 = undistorted_point[0]
-    else:
-        # 如果没有提供去畸变参数，则直接使用原图
-        x1, y1 = x.item(), y.item() + h.item() / 2
-
+    undistorted_frame = cv2.undistort(frame, camera_matrix, distortion_coefficient)
+    cv2.imwrite('D:\\vscode\Speed-Bump-Detection-and-Distance-Measurement-\\assets\\test\\temp.png', undistorted_frame)
+    
     # step2 检测减速带
-    with torch.no_grad():
-        outputs = model(frame)
-    detection = outputs[0].boxes
+    detected_boxes = detect('D:\\vscode\Speed-Bump-Detection-and-Distance-Measurement-\\assets\\test\\temp.png')
+    if len(detected_boxes)>0:
+        detection = detected_boxes[0]
+    else:
+        cv2.putText(undistorted_frame, "detected nothing!", (20, 20), cv2.FONT_HERSHEY_SIMPLEX,
+            0.5, (0, 0, 255), 2)
+        return undistorted_frame, -1
+    
+    xyxy=torch.tensor(detection)
 
-    # step3 计算减速带终点到相机的距离
-    if detection.xyxy is not None and len(detection.xyxy) > 0:
-        x, y, w, h = detection.xywh[0]
+    # step3 计算减速带到相机的距离
+    if xyxy is not None and len(xyxy) > 0:
+        xywh = box_convert(xyxy, in_fmt="xyxy", out_fmt="xywh")
+        x, y, w, h = xywh
         x1, y1 = x.item(), y.item() + h.item() / 2
         distance = get_distance(x1, y1)  # 计算距离
-
+        
         # 实时显示距离
-        if 0 < distance < 10:
-            frame = outputs[0].plot()
-            label = f"Distance: {distance:.6f}"
-            cv2.putText(frame, label, (int(x1), int(y1) + 20), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5, (0, 0, 255), 2)
+        x1, y1, x2, y2 = detection
+        cv2.rectangle(undistorted_frame, (int(x1), int(y1)), (int(x2), int(y2)), (183, 6, 101), 2)  # 绘制框
+        label = f"Distance: {distance:.6f}"
+        cv2.putText(undistorted_frame, label, (int(x1), int(y1) - 20), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5, (183,6,101), 2)
 
-    return frame, distance  # 返回处理后的帧和距离
+    return undistorted_frame, distance  # 返回处理后的帧和距离

@@ -8,7 +8,11 @@ def image_measurement(image_path):
     cv2.imshow("Processed Image", processed_frame)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    print(f"Distance: {distance:.6f}")
+    if distance!=-1:
+        print(f"Distance: {distance:.6f}")
+        cv2.imwrite('assets\\results\\p1.png',processed_frame)
+    else: 
+        print(f"Detection lost")
 
 def video_measurement(video_path):
     cap = cv2.VideoCapture(video_path)
@@ -16,8 +20,9 @@ def video_measurement(video_path):
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
 
+    # 保存视频
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter('result_video.avi', fourcc, fps, (frame_width, frame_height))
+    out = cv2.VideoWriter('assets\\results\\v1.avi', fourcc, fps, (frame_width, frame_height))
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -26,7 +31,10 @@ def video_measurement(video_path):
         processed_frame, distance = process_frame(frame)
 
         # 显示距离
-        print(f"Distance: {distance:.6f}")
+        if distance!=-1:
+            print(f"Distance: {distance:.6f}")
+        else: 
+            print(f"Detection lost")
         out.write(processed_frame)
 
     cap.release()
@@ -42,7 +50,10 @@ def camera_measurement(camera_index=0):
         processed_frame, distance = process_frame(frame)
 
         # 显示距离
-        print(f"Distance: {distance:.6f}")
+        if distance!=-1:
+            print(f"Distance: {distance:.6f}")
+        else: 
+            print(f"Detection lost")
         cv2.imshow("Real-time Measurement", processed_frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):

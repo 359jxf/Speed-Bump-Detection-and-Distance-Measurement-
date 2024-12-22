@@ -1,5 +1,4 @@
 import cv2
-import os
 import yaml
 import numpy as np
 

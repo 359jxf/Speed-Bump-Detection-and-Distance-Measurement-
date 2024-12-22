@@ -1,4 +1,3 @@
-import argparse
 import time
 from pathlib import Path
 
@@ -14,20 +13,37 @@ from utils.general import check_img_size, check_requirements, check_imshow, non_
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 
+def detect(path, save_img=False):
+    source=path
+    weights='D:\\vscode\Speed-Bump-Detection-and-Distance-Measurement-\yolov7\\runs\\train\weights\\best-300.pt'# model.pt path(s)'
+    imgsz =640 # inference size (pixels)
+    conf_thres=0.25 # object confidence threshold
+    iou_thres=0.45 #IOU threshold for NMS
+    opt_device='cpu' # cuda device, i.e. 0 or 0,1,2,3 or cpu
+    view_img=False # display results
+    save_txt=False # save results to *.txt'
+    save_conf=False # save confidences in --save-txt labels
+    nosave=True # do not save images/videos
+    classes=None # filter by class: --class 0, or --class 0 2 3
+    agnostic_nms=False # class-agnostic NMS
+    augment=False # augmented inference
+    project='runs\\detect' # save results to project/name
+    name='' # save results to project/name
+    exist_ok=False # existing project/name ok, do not increment
+    trace=False # trace model
 
-def detect(save_img=False):
-    source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
-    save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
+    save_img = not nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
 
     # Directories
-    save_dir = Path(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))  # increment run
-    (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
+    # save_dir = Path(increment_path(Path(project) / name, exist_ok))  # increment run
+    # (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
+    save_dir = Path(project)  #暂时都一个路径
 
     # Initialize
     set_logging()
-    device = select_device(opt.device)
+    device = select_device(opt_device)
     half = device.type != 'cpu'  # half precision only supported on CUDA
 
     # Load model
@@ -36,7 +52,7 @@ def detect(save_img=False):
     imgsz = check_img_size(imgsz, s=stride)  # check img_size
 
     if trace:
-        model = TracedModel(model, device, opt.img_size)
+        model = TracedModel(model, device, imgsz)
 
     if half:
         model.half()  # to FP16
@@ -66,6 +82,9 @@ def detect(save_img=False):
     old_img_w = old_img_h = imgsz
     old_img_b = 1
 
+    # 存储所有检测到的框坐标
+    detected_boxes = []
+
     t0 = time.time()
     for path, img, im0s, vid_cap in dataset:
         img = torch.from_numpy(img).to(device)
@@ -80,16 +99,16 @@ def detect(save_img=False):
             old_img_h = img.shape[2]
             old_img_w = img.shape[3]
             for i in range(3):
-                model(img, augment=opt.augment)[0]
+                model(img, augment=augment)[0]
 
         # Inference
         t1 = time_synchronized()
         with torch.no_grad():   # Calculating gradients would cause a GPU memory leak
-            pred = model(img, augment=opt.augment)[0]
+            pred = model(img, augment=augment)[0]
         t2 = time_synchronized()
 
         # Apply NMS
-        pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
+        pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic=agnostic_nms)
         t3 = time_synchronized()
 
         # Apply Classifier
@@ -118,9 +137,11 @@ def detect(save_img=False):
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
+                    # 将张量转换为普通的浮动数字并存储在 detected_boxes 中
+                    detected_boxes.append([coord.item() for coord in xyxy])
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
-                        line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format
+                        line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
                         with open(txt_path + '.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
@@ -161,36 +182,10 @@ def detect(save_img=False):
         #print(f"Results saved to {save_dir}{s}")
 
     print(f'Done. ({time.time() - t0:.3f}s)')
-
+     # 返回检测到的框坐标
+    print(detected_boxes)
+    return detected_boxes
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default='runs\\train\exp\weights\best.pt', help='model.pt path(s)')
-    parser.add_argument('--source', type=str, default='data\speedbump\datasets\\finaltest\\', help='source')  # file/folder, 0 for webcam
-    parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
-    parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
-    parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
-    parser.add_argument('--device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
-    parser.add_argument('--view-img', action='store_true', help='display results')
-    parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
-    parser.add_argument('--save-conf', action='store_true', help='save confidences in --save-txt labels')
-    parser.add_argument('--nosave', action='store_true', help='do not save images/videos')
-    parser.add_argument('--classes', nargs='+', type=int, help='filter by class: --class 0, or --class 0 2 3')
-    parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
-    parser.add_argument('--augment', action='store_true', help='augmented inference')
-    parser.add_argument('--update', action='store_true', help='update all models')
-    parser.add_argument('--project', default='runs/detect', help='save results to project/name')
-    parser.add_argument('--name', default='exp', help='save results to project/name')
-    parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
-    parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
-    opt = parser.parse_args()
-    print(opt)
-    #check_requirements(exclude=('pycocotools', 'thop'))
+    detect()
 
-    with torch.no_grad():
-        if opt.update:  # update all models (to fix SourceChangeWarning)
-            for opt.weights in ['yolov7.pt']:
-                detect()
-                strip_optimizer(opt.weights)
-        else:
-            detect()
