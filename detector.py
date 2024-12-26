@@ -1,66 +1,18 @@
 import cv2
 import argparse
-from getDistance.get_distance import process_frame
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '', 'yolov7')))
+from detect import detect
 
 def image_measurement(image_path):
-    image = cv2.imread(image_path)
-    processed_frame, distance = process_frame(image)
-    cv2.imshow("Processed Image", processed_frame)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    if distance!=-1:
-        print(f"Distance: {distance:.6f}")
-        cv2.imwrite('assets\\results\\p1.png',processed_frame)
-    else: 
-        print(f"Detection lost")
+    detect(image_path)
 
 def video_measurement(video_path):
-    cap = cv2.VideoCapture(video_path)
-    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = cap.get(cv2.CAP_PROP_FPS)
-
-    # 保存视频
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter('assets\\results\\v1.avi', fourcc, fps, (frame_width, frame_height))
-
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-        processed_frame, distance = process_frame(frame)
-
-        # 显示距离
-        if distance!=-1:
-            print(f"Distance: {distance:.6f}")
-        else: 
-            print(f"Detection lost")
-        out.write(processed_frame)
-
-    cap.release()
-    out.release()
-    cv2.destroyAllWindows()
+    detect(video_path)
 
 def camera_measurement(camera_index=0):
-    cap = cv2.VideoCapture(camera_index)
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-        processed_frame, distance = process_frame(frame)
-
-        # 显示距离
-        if distance!=-1:
-            print(f"Distance: {distance:.6f}")
-        else: 
-            print(f"Detection lost")
-        cv2.imshow("Real-time Measurement", processed_frame)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    cap.release()
-    cv2.destroyAllWindows()
+    detect(str(camera_index))
 
 def main(options, path):
     # 根据 options 选择执行的操作

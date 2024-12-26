@@ -1,5 +1,17 @@
 import cv2
 import os
+import yaml
+import numpy as np
+
+# 从YAML文件加载相机参数
+def load_camera_params(yaml_path):
+    with open(yaml_path, 'r') as f:
+        params = yaml.safe_load(f)
+    camera_matrix = np.array(params['camera_matrix'])
+    distortion_coefficients = np.array(params['distortion_coefficients'])
+    return camera_matrix, distortion_coefficients
+
+camera_matrix, distortion_coefficient = load_camera_params('configs/intrinsic.yaml')
 
 # 用于记录点击的点
 points = []
@@ -16,14 +28,15 @@ def click_corner(event, x, y, flags, param):
 
 
 if __name__ == '__main__':
-    file = "assets/images/1.png" 
-
+    file = "assets/datasetvideos/2.png"
+    
     # 检查文件是否存在
     if not os.path.exists(file):
         print(f"Error: The file at path '{file}' does not exist.")
         exit()
 
     image = cv2.imread(file)
+    image = cv2.undistort(image, camera_matrix, distortion_coefficient)
 
     # 检查图像是否成功加载
     if image is None:

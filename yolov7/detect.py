@@ -4,7 +4,8 @@ from pathlib import Path
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
-from numpy import random
+import numpy as np
+import yaml
 
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
@@ -13,33 +14,63 @@ from utils.general import check_img_size, check_requirements, check_imshow, non_
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 
-def detect(path, save_img=False):
+# 从YAML文件加载相机参数
+def load_camera_params(yaml_path):
+    with open(yaml_path, 'r') as f:
+        params = yaml.safe_load(f)
+    camera_matrix = np.array(params['camera_matrix'])
+    distortion_coefficients = np.array(params['distortion_coefficients'])
+    return camera_matrix, distortion_coefficients
+
+camera_matrix, distortion_coefficient = load_camera_params('configs/intrinsic.yaml')
+
+# 从YAML文件加载变换矩阵
+def load_homography_params(yaml_path):
+    with open(yaml_path, 'r') as f:
+        params = yaml.safe_load(f)
+    H = np.array(params['homography_matrix'])
+    return H
+
+H = load_homography_params("configs/homography.yaml")
+
+def get_distance(x, y):
+    # 齐次坐标
+    homogeneous_coordinate = np.array([x, y, 1])
+    # 计算世界坐标
+    world_point = np.dot(H, homogeneous_coordinate)
+    # 归一化
+    ratio = 1 / world_point[2]
+    world_point *= ratio
+    # 返回世界坐标的y值，单位为米
+    return world_point[1] / 1000
+
+def detect(path, undistort=False):
     source=path
     weights='D:\\vscode\Speed-Bump-Detection-and-Distance-Measurement-\yolov7\\runs\\train\weights\\best-300.pt'# model.pt path(s)'
     imgsz =640 # inference size (pixels)
-    conf_thres=0.25 # object confidence threshold
-    iou_thres=0.45 #IOU threshold for NMS
+    conf_thres=0.3 # object confidence threshold
+    iou_thres=0.55 #IOU threshold for NMS
     opt_device='cpu' # cuda device, i.e. 0 or 0,1,2,3 or cpu
     view_img=False # display results
     save_txt=False # save results to *.txt'
     save_conf=False # save confidences in --save-txt labels
-    nosave=True # do not save images/videos
-    classes=None # filter by class: --class 0, or --class 0 2 3
+    classes=1 # filter by class: --class 0, or --class 0 2 3
     agnostic_nms=False # class-agnostic NMS
     augment=False # augmented inference
-    project='runs\\detect' # save results to project/name
+    nosave=False # dont save the processed image or video
+    project='yolov7\\runs\\detect' # save results to project/name
     name='' # save results to project/name
-    exist_ok=False # existing project/name ok, do not increment
+    exist_ok=True # existing project/name ok, do not increment
     trace=False # trace model
 
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
 
+    print(save_img)
     # Directories
-    # save_dir = Path(increment_path(Path(project) / name, exist_ok))  # increment run
-    # (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
-    save_dir = Path(project)  #暂时都一个路径
+    save_dir = Path(increment_path(Path(project) / name, exist_ok))  # increment run
+    (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
     # Initialize
     set_logging()
@@ -74,7 +105,7 @@ def detect(path, save_img=False):
 
     # Get names and colors
     names = model.module.names if hasattr(model, 'module') else model.names
-    colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
+    colors = [[np.random.randint(0, 255) for _ in range(3)] for _ in names]
 
     # Run inference
     if device.type != 'cpu':
@@ -82,11 +113,11 @@ def detect(path, save_img=False):
     old_img_w = old_img_h = imgsz
     old_img_b = 1
 
-    # 存储所有检测到的框坐标
-    detected_boxes = []
-
     t0 = time.time()
     for path, img, im0s, vid_cap in dataset:
+        # step1 undistort ...
+
+        # step2 detect
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
@@ -136,9 +167,16 @@ def detect(path, save_img=False):
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
                 # Write results
-                for *xyxy, conf, cls in reversed(det):
-                    # 将张量转换为普通的浮动数字并存储在 detected_boxes 中
-                    detected_boxes.append([coord.item() for coord in xyxy])
+                for *xyxy, conf, cls in reversed(det): 
+                    # step3 measure                   
+                    # 计算检测框的中心点坐标
+                    x1, y1, x2, y2 = xyxy
+                    center_x = (x1 + x2) / 2
+                    center_y = (y1 + y2) / 2
+
+                    # 假设 get_distance 是一个返回基于坐标计算距离的函数
+                    distance = get_distance(center_x, center_y)  # 根据检测框的中心点计算距离
+                                
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
@@ -146,7 +184,7 @@ def detect(path, save_img=False):
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
                     if save_img or view_img:  # Add bbox to image
-                        label = f'{names[int(cls)]} {conf:.2f}'
+                        label = f'{names[int(cls)]} {conf:.2f} Distance: {distance:.2f}m'
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
 
             # Print time (inference + NMS)
@@ -182,10 +220,8 @@ def detect(path, save_img=False):
         #print(f"Results saved to {save_dir}{s}")
 
     print(f'Done. ({time.time() - t0:.3f}s)')
-     # 返回检测到的框坐标
-    print(detected_boxes)
-    return detected_boxes
+
 
 if __name__ == '__main__':
-    detect()
+    detect('D:\\vscode\Speed-Bump-Detection-and-Distance-Measurement-\\assets\datasetvideos\\2.png')
 
