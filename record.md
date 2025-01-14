@@ -29,7 +29,7 @@
 
 为了更快标注，可以在labelimg下载目录`D:\APP\ANACONDA\Lib\site-packages\labelImg`里增加data/predefined_classes.txt来存会用到的标签。然后标注了就可以看到默认标签：
 
-![image-20241210230628354](assets-record\image-20241210230628354.png)
+![image-20241210230628354](https://github.com/359jxf/Speed-Bump-Detection-and-Distance-Measurement-/blob/main/assets-record\image-20241210230628354.png)
 
 此时datasets/labels下就可以看到自动生成的classes.txt，和predefined_classes.txt一样。
 
@@ -53,11 +53,11 @@ jupyter拖动大文件会有加载缓冲条，没加载完不能unzip
 
 2. 运行yolov7\train.py:
 
-![image-20250114173744304](assets-record\image-20250114173744304.png)
+![image-20250114173744304](https://github.com/359jxf/Speed-Bump-Detection-and-Distance-Measurement-/blob/main/assets-record\image-20250114173744304.png)
 
 3. 运行yolov7\detect.py:
 
-![image-20250114173820595](assets-record\image-20250114173820595.png)
+![image-20250114173820595](https://github.com/359jxf/Speed-Bump-Detection-and-Distance-Measurement-/blob/main/assets-record\image-20250114173820595.png)
 
 我还改了agnostic-nms、conf-thres、iou-thres因为测试不出框，降低要求了才输出了一些
 
@@ -67,7 +67,7 @@ jupyter拖动大文件会有加载缓冲条，没加载完不能unzip
 
 还得是张林老师数据集：
 
-![image-20241221163707154](assets-record\image-20241221163707154.png)
+![image-20241221163707154](https://github.com/359jxf/Speed-Bump-Detection-and-Distance-Measurement-/blob/main/assets-record\image-20241221163707154.png)
 
 注意每次重新训练都要删除dataset的cache
 
@@ -77,7 +77,7 @@ jupyter拖动大文件会有加载缓冲条，没加载完不能unzip
 
 这张混淆矩阵看到容易把背景误识别。目前不知道有什么办法
 
-![image-20241224140559998](assets-record\image-20241224140559998.png)
+![image-20241224140559998](https://github.com/359jxf/Speed-Bump-Detection-and-Distance-Measurement-/blob/main/assets-record\image-20241224140559998.png)
 
 ## 目标检测
 
