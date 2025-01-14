@@ -47,7 +47,7 @@ jupyter拖动大文件会有加载缓冲条，没加载完不能unzip
 
 1. yolov7\data\speedbump：
 
-![image-20241215224015052](assets-record\image-20241215224015052.png)
+![image-20241215224015052](assets-record\\image-20241215224015052.png)
 
 先放入原始数据，然后运行yolov7\data下的data.py生成datasets里的训练集、测试集、验证集
 
