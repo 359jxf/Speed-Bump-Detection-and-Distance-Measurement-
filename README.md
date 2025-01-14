@@ -39,6 +39,7 @@ CV-2024fall-finalproject
 |
 |--detector.py最终运行，通过命令行参数选择图像检测、视频检测或摄像头实时检测
 ```
+注：没有上传assets，可以自己加
 
 ### 使用方法
 
@@ -71,3 +72,4 @@ CV-2024fall-finalproject
    names: [ 'person','speedbump' ]
    ```
 
+3. 详情查看`record.md`

@@ -27,8 +27,7 @@ def main(options, path):
         else:
             print("Video path is required for video measurement.")
     elif options == 'camera':
-        # 如果是摄像头模式，path 可以是 None 或者传递摄像头索引
-        camera_index = int(path) if path else 0  # 默认使用摄像头 0
+        camera_index = int(path) if path else 0  
         camera_measurement(camera_index)
     else:
         print("Invalid options. Choose 'image', 'video', or 'camera'.")

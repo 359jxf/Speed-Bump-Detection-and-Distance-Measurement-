@@ -44,7 +44,7 @@ def get_distance(x, y):
     # 返回世界坐标的y值，单位为米
     return world_point[1] / 1000
 
-def detect(path, undistort=False):
+def detect(path):
     source=path
     weights='D:\\vscode\Speed-Bump-Detection-and-Distance-Measurement-\yolov7\\runs\\train\weights\\best-300.pt'# model.pt path(s)'
     imgsz =640 # inference size (pixels)
